@@ -1,0 +1,328 @@
+ALTER TABLE osoby
+RENAME TO people;
+
+SELECT * FROM people;
+
+ALTER TABLE people
+RENAME TO osoby;
+
+ALTER TABLE osoby
+ADD people VARCHAR(10);
+
+ALTER TABLE osoby
+DROP COLUMN people;
+
+ALTER TABLE osoby
+ADD age NUMBER(2);
+
+ALTER TABLE osoby
+DROP COLUMN age;
+
+UPDATE osoby
+SET imie2 = '-'
+WHERE imie2 IS NULL;
+
+ALTER TABLE osoby
+MODIFY imie2
+VARCHAR2(15) NOT NULL;
+
+SELECT * FROM osoby;
+
+
+SELECT MAX(nazwisko)
+FROM osoby;
+
+17. z tabeli osoby wyświetlić nazwiska pisane dużymi literami a imie1 pisane z dużej litery
+SELECT UPPER(nazwisko), INITCAP(imie1)
+FROM osoby;
+
+18.
+UPDATE osoby
+SET nazwisko = UPPER(nazwisko)
+WHERE id IN (1, 2);
+
+19
+UPDATE osoby
+SET nazwisko = INITCAP(nazwisko),
+imie1 = UPPER(imie1)
+WHERE id = 3;
+
+20
+SELECT * FROM osoby
+WHERE nazwisko = LOWER(nazwisko);
+
+21
+SELECT * FROM osoby
+WHERE LOWER(nazwisko) LIKE '_o%';
+
+22
+SELECT nazwa from wydzialy
+where nazwa like '%a%';
+
+23
+SELECT nazwisko, NVL(imie2, 'brak')
+from osoby;
+
+24
+SELECT LPAD(nazwisko, 20, ' ') AS nazwisko, LPAD(imie1, 20, ' ') AS imie1
+FROM osoby;
+
+25
+SELECT SUBSTR(nazwisko, 2, 1), (LENGTH(imie1) + LENGTH(imie2)) FROM osoby;
+
+26
+SELECT id, nazwisko, imie1, 
+CASE WHEN plec = 'K' THEN 'Kobieta'
+ELSE 'Mezczyzna'
+END AS plec
+FROM osoby;
+
+27
+SELECT * FROM osoby
+WHERE data_ur < TO_DATE('01/01/1983', 'dd/mm/yyyy');
+
+29
+SELECT EXTRACT(YEAR FROM data_ur)
+FROM osoby;
+
+30
+select * from zatrudnienia
+where to_number(extract(year from do)) < 2012;
+
+31
+select id_osoby, avg(pensja), max(pensja), sum(case when do is null then 1 else 0 end)
+from pensje
+group by id_osoby;
+
+32
+select osoby.* from osoby, zatrudnienia
+where osoby.id = zatrudnienia.id_osoby
+and zatrudnienia.do is null;
+
+33
+select osoby.id, pensje.pensja, pensje.do from osoby, pensje
+where osoby.id = pensje.id_osoby
+and pensje.do is null;
+
+34
+select id_osoby, count(pensja)
+from pensje
+group by id_osoby;
+
+35
+select id_osoby, avg(pensja), max(pensja), count(pensja)
+from pensje
+where do is null
+and pensja > (select avg(pensja) from pensje)
+group by id_osoby;
+
+37
+select id_osoby, avg(pensja)
+from pensje
+where pensja > (select avg(pensja) from pensje)
+group by id_osoby
+order by avg(pensja) desc;
+
+38
+select length(nazwisko) from osoby;
+
+40
+select imie1 || ' ' || nazwisko as dane, NVL(imie2, 'brak'), data_ur, case
+when plec = 'K'
+then 'Kobieta'
+when plec = 'M'
+then 'Mezczyzna'
+else '?'
+end as plec
+from osoby;
+
+41
+select osoby.*, pensje.*
+from osoby, pensje
+where osoby.id = pensje.id_osoby;
+
+42
+select * from osoby
+inner join pensje on osoby.id = pensje.id_osoby;
+
+43
+select osoby.*
+from osoby, pensje
+where osoby.id = pensje.id_osoby
+and osoby.id in (1, 2, 3)
+and pensje.do is null;
+
+44
+select osoby.id, osoby.nazwisko, osoby.imie1, pensje.pensja
+from osoby, pensje
+where osoby.id = pensje.id_osoby 
+and pensje.do is null;
+
+45
+select osoby.*
+from osoby, pensje, zatrudnienia
+where osoby.id = pensje.id_osoby
+and osoby.id = zatrudnienia.id_osoby
+and pensje.do is not null
+and zatrudnienia.do is null;
+
+46
+select osoby.*, wydzialy.nazwa
+from osoby, wydzialy, zatrudnienia
+where osoby.id = zatrudnienia.id_osoby
+and wydzialy.id = zatrudnienia.id_wydzialy
+and zatrudnienia.do is null;
+
+47) Wyznaczyć średnią pensję aktualnie pracujących na każdym wydziale i wyświetlić w postaci:
+select avg(pensje.pensja), wydzialy.nazwa
+from pensje, wydzialy, zatrudnienia, osoby
+where osoby.id = pensje.id_osoby
+and osoby.id = zatrudnienia.id_osoby
+and wydzialy.id = zatrudnienia.id_wydzialy
+and zatrudnienia.do is null
+group by wydzialy.nazwa;
+
+48) Wyznaczyć średnią wieku aktualnie pracujących pracowników dla każdej płci
+select osoby.plec, avg(FLOOR((TO_date('15/01/2020', 'dd/mm/yyyy') - osoby.data_ur)/365.25)) as age
+from osoby, zatrudnienia
+where osoby.id = zatrudnienia.id_osoby
+and zatrudnienia.do is null
+group by osoby.plec;
+
+49) wypisać aktualnego szefa
+select wydzialy.nazwa, osoby.nazwisko, osoby.imie1
+from osoby, wydzialy, zatrudnienia
+where osoby.id = wydzialy.szef
+and osoby.id = zatrudnienia.id_osoby
+and zatrudnienia.do is null;
+
+50) wyświetlić dane osobowe wszystkich osob o nazwisku pisanym malymi literami
+select * from osoby
+where nazwisko = lower(nazwisko);
+
+51) dane najstarszej osoby
+select * from osoby
+where data_ur =
+(select min(data_ur)
+from osoby);
+
+52) wyświetlić dane osób dla których data urodzenia jest większa od min daty urodzenia
+select * from osoby
+where data_ur >
+(select min(data_ur) from osoby);
+
+
+53) wybrać dane osobowe osób nieposiadających aktualnej pensji
+select osoby.id, count(pensje.pensja) from osoby, pensje
+where osoby.id = pensje.id_osoby
+and pensje.do is not null
+having count(pensje.pensja) = 1
+group by osoby.id;
+
+54) wybrać dane osobowe pierwszej osoby według alfabetu
+select * from osoby
+where nazwisko = 
+(select min(nazwisko) from osoby);
+
+55) wybrać dane szefów
+select osoby.* from osoby, wydzialy
+where osoby.id = wydzialy.szef;
+
+56)Wyświetlić wszystkie dane osób, które posiadają najkrótsze nazwisko .
+select * from osoby
+where length(nazwisko) = 
+(select min(length(nazwisko))
+from osoby);
+
+57
+select wydzialy.nazwa, count(zatrudnienia.id_osoby)
+from wydzialy, zatrudnienia
+where wydzialy.id = zatrudnienia.id_wydzialy
+and length(wydzialy.nazwa) =
+(select max(length(wydzialy.nazwa))
+from wydzialy)
+group by wydzialy.nazwa;
+
+57) wydział o nazwie maksymalnej dlugości I wypisać zatrudnione tam osoby
+select osoby.*, wydzialy.nazwa
+from osoby, wydzialy, zatrudnienia
+where osoby.id = zatrudnienia.id_osoby
+and wydzialy.id = zatrudnienia.id_wydzialy
+and length(wydzialy.nazwa) =
+(select max(length(wydzialy.nazwa))
+from wydzialy);
+
+58) Wybrać najmłodszą osobę już niepracującą
+select osoby.*, zatrudnienia.*
+from osoby, zatrudnienia
+where osoby.id = zatrudnienia.id_osoby
+and zatrudnienia.do is not null
+and osoby.data_ur = 
+(select max(osoby.data_ur) from osoby);
+
+59) dane najstarszego szefa
+select osoby.*, wydzialy.nazwa from osoby, wydzialy
+where osoby.id = wydzialy.szef
+and osoby.data_ur =
+(select min(osoby.data_ur) from osoby inner join
+wydzialy on osoby.id = wydzialy.szef);
+
+60) Wyznaczyć wydział, na którym suma pensji jest największa
+select wydzialy.nazwa, sum(pensje.pensja) from wydzialy, pensje, zatrudnienia, osoby
+where wydzialy.id = zatrudnienia.id_wydzialy
+and osoby.id = zatrudnienia.id_osoby
+and osoby.id = pensje.id_osoby
+group by wydzialy.nazwa
+having sum(pensje.pensja) =
+(select max(sum(pensje.pensja)) from pensje, wydzialy, osoby, zatrudnienia
+where osoby.id = pensje.id_osoby
+and osoby.id = zatrudnienia.id_osoby
+and wydzialy.id = zatrudnienia.id_wydzialy
+group by wydzialy.nazwa);
+
+61) wyświetlić największą pensje aktualnie wypłacaną
+select max(pensja) from pensje
+where do is null;
+
+62) Na którym wydziale pracuje aktualnie najwięcej osób
+select wydzialy.nazwa, count(zatrudnienia.id_osoby)
+from wydzialy, zatrudnienia
+where wydzialy.id = zatrudnienia.id_wydzialy
+and zatrudnienia.do is null
+group by wydzialy.nazwa
+having count(zatrudnienia.id_osoby)=
+(select max(count(zatrudnienia.id_osoby)) from wydzialy, zatrudnienia 
+where wydzialy.id = zatrudnienia.id_wydzialy
+and zatrudnienia.do is null
+group by wydzialy.nazwa);
+
+63) Wybrać osoby, które nie otrzymały jeszcze podwyżki
+select osoby.id from osoby, pensje
+where osoby.id = pensje.id_osoby
+group by osoby.id
+having count(pensje.pensja) = 1;
+
+64) Wybrać wydział, który ma najstarszego szefa aktualnie pracującego
+select wydzialy.nazwa from osoby, wydzialy, zatrudnienia
+where osoby.id = wydzialy.szef
+and zatrudnienia.do is null
+and osoby.data_ur =
+(select min(osoby.data_ur) from osoby inner join
+wydzialy on osoby.id = wydzialy.szef)
+group by wydzialy.nazwa;
+
+65) wyświetlić dane wydziałów posiadających więcej jak 2 pracowników
+select wydzialy.nazwa, count(zatrudnienia.id_osoby)
+from wydzialy, zatrudnienia
+where wydzialy.id = zatrudnienia.id_wydzialy
+group by wydzialy.nazwa
+having count(zatrudnienia.id_osoby) > 2;
+
+66) najstarsze osoby z każdej płci
+select * from osoby
+where data_ur = 
+(select min(data_ur) from osoby
+where plec = 'K')
+or data_ur =
+(select min(data_ur) from osoby
+where plec = 'M');
